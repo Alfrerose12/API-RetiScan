@@ -20,6 +20,11 @@ const router = Router();
  * /users/register:
  *   post:
  *     summary: Registrar un nuevo usuario
+ *     description: |
+ *       El rol se asigna automáticamente según el dominio del email:
+ *       - `@retiscan.com` → **MEDICO**
+ *       - `@yada.com` → **ADMINISTRADOR**
+ *       - Cualquier otro dominio → **PACIENTE**
  *     tags: [Users]
  *     security: []
  *     requestBody:
@@ -114,7 +119,7 @@ router.get('/profile', authMiddleware, userController.getProfile);
  *             properties:
  *               email:    { type: string, format: email }
  *               password: { type: string, minLength: 6 }
- *               role:     { type: string, enum: [MEDICO, PACIENTE] }
+ *               role:     { type: string, enum: [MEDICO, PACIENTE, ADMINISTRADOR] }
  *     responses:
  *       200:
  *         description: Perfil actualizado

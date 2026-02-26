@@ -2,20 +2,29 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 
+/**
+ * Determina el rol automáticamente según el dominio del email.
+ * @param {string} email
+ * @returns {'ADMINISTRADOR'|'MEDICO'|'PACIENTE'}
+ */
+function resolveRoleFromEmail(email) {
+    const domain = email.split('@')[1]?.toLowerCase();
+    if (domain === 'yada.com') return 'ADMINISTRADOR';
+    if (domain === 'retiscan.com') return 'MEDICO';
+    return 'PACIENTE';
+}
+
 const userService = {
     /**
-     * Register a new user. Validates uniqueness and role before inserting.
+     * Register a new user. The role is assigned automatically based on the email domain:
+     *   @yada.com      → ADMINISTRADOR
+     *   @retiscan.com  → MEDICO
+     *   anything else  → PACIENTE
      * @param {string} email
      * @param {string} password
-     * @param {'MEDICO'|'PACIENTE'} role
      */
-    async register(email, password, role) {
-        const validRoles = ['MEDICO', 'PACIENTE'];
-        if (!validRoles.includes(role)) {
-            const err = new Error(`Role must be one of: ${validRoles.join(', ')}`);
-            err.statusCode = 400;
-            throw err;
-        }
+    async register(email, password) {
+        const role = resolveRoleFromEmail(email);
 
         const existing = await User.findByEmail(email);
         if (existing) {

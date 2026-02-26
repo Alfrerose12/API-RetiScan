@@ -4,11 +4,11 @@ const userController = {
     /** POST /api/users/register */
     async register(req, res, next) {
         try {
-            const { email, password, role } = req.body;
-            if (!email || !password || !role) {
-                return res.status(400).json({ error: 'email, password and role are required' });
+            const { email, password } = req.body;
+            if (!email || !password) {
+                return res.status(400).json({ error: 'email and password are required' });
             }
-            const user = await userService.register(email, password, role);
+            const user = await userService.register(email, password);
             return res.status(201).json({ message: 'User registered successfully', user });
         } catch (err) {
             next(err);
