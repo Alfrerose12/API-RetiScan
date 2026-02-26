@@ -1,0 +1,52 @@
+# ─────────────────────────────────────────────────────────────
+#  RetiScan — Docker Compose
+#  Servicios: api (Node.js) + db (PostgreSQL)
+#
+#  Uso:
+#    docker compose up -d          # Levantar todo en background
+#    docker compose logs -f api    # Ver logs de la API
+#    docker compose down           # Detener y eliminar contenedores
+#    docker compose down -v        # + eliminar volúmenes (borra BD)
+# ─────────────────────────────────────────────────────────────
+
+services:
+
+  # ── PostgreSQL Database ──────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: retiscan_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB:       ${DB_NAME}
+    volumes:
+      - pg_data:/var/lib/postgresql/data       # Datos persistentes
+      - ./config/init.sql:/docker-entrypoint-initdb.d/init.sql  # Auto-init
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Node.js API ──────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: retiscan_api
+    restart: unless-stopped
+    env_file: .env                     # Lee todas las variables del .env
+    environment:
+      DB_HOST: db                      # Override: apuntar al contenedor db
+    ports:
+      - "${PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy     # Espera a que Postgres esté listo
+
+volumes:
+  pg_data:
+    name: retiscan_pg_data
