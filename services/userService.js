@@ -21,9 +21,10 @@ const userService = {
      *   @retiscan.com  → MEDICO
      *   anything else  → PACIENTE
      * @param {string} email
+     * @param {string} name
      * @param {string} password
      */
-    async register(email, password) {
+    async register(email, name, password) {
         const role = resolveRoleFromEmail(email);
 
         const existing = await User.findByEmail(email);
@@ -33,7 +34,7 @@ const userService = {
             throw err;
         }
 
-        const user = await User.create(email, password, role);
+        const user = await User.create(email, name, password, role);
         return user;
     },
 

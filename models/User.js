@@ -6,16 +6,17 @@ const User = {
     /**
      * Create a new user with a hashed password.
      * @param {string} email
+     * @param {string} name
      * @param {string} plainPassword
-     * @param {'MEDICO'|'PACIENTE'} role
+     * @param {'MEDICO'|'PACIENTE'|'ADMINISTRADOR'} role
      */
-    async create(email, plainPassword, role) {
+    async create(email, name, plainPassword, role) {
         const passwordHash = await bcrypt.hash(plainPassword, env.BCRYPT_SALT_ROUNDS);
         const result = await pool.query(
-            `INSERT INTO users (email, password_hash, role)
-       VALUES ($1, $2, $3)
-       RETURNING id, email, role, created_at`,
-            [email, passwordHash, role]
+            `INSERT INTO users (email, name, password_hash, role)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, email, name, role, created_at`,
+            [email, name, passwordHash, role]
         );
         return result.rows[0];
     },
@@ -32,7 +33,7 @@ const User = {
     /** Find a user by UUID (excludes password_hash). */
     async findById(id) {
         const result = await pool.query(
-            'SELECT id, email, role, created_at, updated_at FROM users WHERE id = $1',
+            'SELECT id, email, name, role, created_at, updated_at FROM users WHERE id = $1',
             [id]
         );
         return result.rows[0] || null;
@@ -41,7 +42,7 @@ const User = {
     /** Find all users (excludes password_hash). */
     async findAll() {
         const result = await pool.query(
-            'SELECT id, email, role, created_at, updated_at FROM users ORDER BY created_at DESC'
+            'SELECT id, email, name, role, created_at, updated_at FROM users ORDER BY created_at DESC'
         );
         return result.rows;
     },
@@ -60,12 +61,16 @@ const User = {
             setClauses.push(`email = $${idx++}`);
             values.push(fields.email);
         }
+        if (fields.name) {
+            setClauses.push(`name = $${idx++}`);
+            values.push(fields.name);
+        }
         if (fields.role) {
             setClauses.push(`role = $${idx++}`);
             values.push(fields.role);
         }
         if (fields.password) {
-            const hash = await bcrypt.hash(fields.password, SALT_ROUNDS);
+            const hash = await bcrypt.hash(fields.password, env.BCRYPT_SALT_ROUNDS);
             setClauses.push(`password_hash = $${idx++}`);
             values.push(hash);
         }
@@ -78,7 +83,7 @@ const User = {
         const result = await pool.query(
             `UPDATE users SET ${setClauses.join(', ')}
        WHERE id = $${idx}
-       RETURNING id, email, role, updated_at`,
+       RETURNING id, email, name, role, updated_at`,
             values
         );
         return result.rows[0] || null;

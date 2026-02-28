@@ -34,12 +34,13 @@ const options = {
                 // ── Users ──────────────────────────────────────────────────────────
                 RegisterRequest: {
                     type: 'object',
-                    required: ['email', 'password', 'role'],
+                    required: ['email', 'name', 'password'],
                     properties: {
                         email: { type: 'string', format: 'email', example: 'medico@retiscan.com' },
+                        name: { type: 'string', example: 'Dr. García López' },
                         password: { type: 'string', minLength: 6, example: 'SecurePass123' },
-                        role: { type: 'string', enum: ['MEDICO', 'PACIENTE'], example: 'MEDICO' },
                     },
+                    description: 'El rol se asigna automáticamente: @retiscan.com → MEDICO, @yada.com → ADMINISTRADOR, otros → PACIENTE',
                 },
                 LoginRequest: {
                     type: 'object',
@@ -54,7 +55,8 @@ const options = {
                     properties: {
                         id: { type: 'string', format: 'uuid' },
                         email: { type: 'string', format: 'email' },
-                        role: { type: 'string', enum: ['MEDICO', 'PACIENTE'] },
+                        name: { type: 'string', example: 'Dr. García López' },
+                        role: { type: 'string', enum: ['MEDICO', 'PACIENTE', 'ADMINISTRADOR'] },
                         created_at: { type: 'string', format: 'date-time' },
                         updated_at: { type: 'string', format: 'date-time' },
                     },
