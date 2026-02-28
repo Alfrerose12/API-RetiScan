@@ -139,28 +139,50 @@ router.put('/profile', authMiddleware, userController.updateProfile);
 
 /**
  * @swagger
- * /users/{id}:
- *   delete:
- *     summary: Eliminar un usuario por ID
+ * /users/change-password:
+ *   put:
+ *     summary: Cambiar contraseña del usuario autenticado
+ *     description: |
+ *       Permite al usuario cambiar su contraseña. Si el usuario tiene
+ *       `mustChangePassword: true` (médico con contraseña temporal), este
+ *       endpoint la elimina y desactiva la bandera.
+ *
+ *       La PWA debe redirigir al médico a esta pantalla si `mustChangePassword` es `true` en el login.
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: UUID del usuario a eliminar
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [newPassword]
+ *             properties:
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 6
+ *                 example: MiNuevaPassword123
  *     responses:
  *       200:
- *         description: Usuario eliminado
+ *         description: Contraseña actualizada — mustChangePassword ahora es false
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Contraseña actualizada exitosamente
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       400:
+ *         description: newPassword faltante o menor a 6 caracteres
  *       401:
  *         description: Token inválido o faltante
- *       404:
- *         description: Usuario no encontrado
  */
+router.put('/change-password', authMiddleware, userController.changePassword);
+
 router.delete('/:id', authMiddleware, userController.deleteUser);
 
 module.exports = router;

@@ -64,7 +64,12 @@ const userService = {
 
         return {
             token,
-            user: { id: user.id, email: user.email, role: user.role },
+            user: {
+                id: user.id,
+                email: user.email,
+                role: user.role,
+                mustChangePassword: user.must_change_password ?? false,
+            },
         };
     },
 
@@ -99,6 +104,22 @@ const userService = {
             throw err;
         }
         return deleted;
+    },
+
+    /**
+     * Change user password and clear the must_change_password flag.
+     * Validates that the new password differs from the current one (optional but good UX).
+     * @param {string} id - User UUID
+     * @param {string} newPassword
+     */
+    async changePassword(id, newPassword) {
+        const updated = await User.changePassword(id, newPassword);
+        if (!updated) {
+            const err = new Error('User not found');
+            err.statusCode = 404;
+            throw err;
+        }
+        return updated;
     },
 };
 

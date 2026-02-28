@@ -58,6 +58,23 @@ const userController = {
             next(err);
         }
     },
+
+    /** PUT /api/users/change-password  (requires auth) */
+    async changePassword(req, res, next) {
+        try {
+            const { newPassword } = req.body;
+            if (!newPassword || newPassword.length < 6) {
+                return res.status(400).json({ error: 'newPassword debe tener al menos 6 caracteres' });
+            }
+            const user = await userService.changePassword(req.user.id, newPassword);
+            return res.status(200).json({
+                message: 'Contraseña actualizada exitosamente',
+                user,
+            });
+        } catch (err) {
+            next(err);
+        }
+    },
 };
 
 module.exports = userController;

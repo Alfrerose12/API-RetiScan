@@ -1,25 +1,5 @@
 const swaggerJsdoc = require('swagger-jsdoc');
-const os = require('os');
 const env = require('./env');
-
-/**
- * Detecta la IP LAN de la máquina en tiempo de ejecución.
- * Ignora loopback (127.x) e interfaces internas de Docker (172.x).
- * Si no encuentra ninguna, devuelve 'localhost' como fallback.
- */
-function getLanIP() {
-    const interfaces = os.networkInterfaces();
-    for (const iface of Object.values(interfaces)) {
-        for (const addr of iface) {
-            if (addr.family === 'IPv4' && !addr.internal && !addr.address.startsWith('172.')) {
-                return addr.address;
-            }
-        }
-    }
-    return 'localhost';
-}
-
-const LAN_IP = getLanIP();
 
 const options = {
     definition: {
@@ -37,12 +17,8 @@ const options = {
         },
         servers: [
             {
-                url: `http://localhost:${env.PORT}/api`,
-                description: 'Local (misma máquina)',
-            },
-            {
-                url: `http://${LAN_IP}:${env.PORT}/api`,
-                description: `Red local (LAN) — ${LAN_IP}`,
+                url: '/api',
+                description: 'Servidor actual (se adapta automáticamente al host)',
             },
         ],
         components: {
@@ -91,6 +67,31 @@ const options = {
                         message: { type: 'string', example: 'Login successful' },
                         token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR...' },
                         user: { $ref: '#/components/schemas/User' },
+                    },
+                },
+                // ── Admin ──────────────────────────────────────────────────────────
+                CreateDoctorRequest: {
+                    type: 'object',
+                    required: ['name'],
+                    properties: {
+                        name: {
+                            type: 'string',
+                            example: 'Dr. Juan García López',
+                            description: 'Nombre completo del médico. Se usa para generar el email automáticamente.',
+                        },
+                    },
+                },
+                CreateDoctorResponse: {
+                    type: 'object',
+                    properties: {
+                        message: { type: 'string', example: 'Médico creado exitosamente' },
+                        user: { $ref: '#/components/schemas/User' },
+                        tempPassword: {
+                            type: 'string',
+                            example: 'aB3xKq9mZp1w',
+                            description: 'Contraseña temporal generada. Compartirla con el médico.',
+                        },
+                        note: { type: 'string', example: 'Comparte estas credenciales con el médico.' },
                     },
                 },
                 // ── Patients ───────────────────────────────────────────────────────
