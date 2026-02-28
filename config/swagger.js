@@ -1,5 +1,25 @@
 const swaggerJsdoc = require('swagger-jsdoc');
+const os = require('os');
 const env = require('./env');
+
+/**
+ * Detecta la IP LAN de la máquina en tiempo de ejecución.
+ * Ignora loopback (127.x) e interfaces internas de Docker (172.x).
+ * Si no encuentra ninguna, devuelve 'localhost' como fallback.
+ */
+function getLanIP() {
+    const interfaces = os.networkInterfaces();
+    for (const iface of Object.values(interfaces)) {
+        for (const addr of iface) {
+            if (addr.family === 'IPv4' && !addr.internal && !addr.address.startsWith('172.')) {
+                return addr.address;
+            }
+        }
+    }
+    return 'localhost';
+}
+
+const LAN_IP = getLanIP();
 
 const options = {
     definition: {
@@ -9,7 +29,7 @@ const options = {
             version: '1.0.0',
             description:
                 'REST API para la plataforma de detección de retinopatía diabética RetiScan. ' +
-                'Incluye gestión de usuarios (MEDICO/PACIENTE), pacientes, análisis de IA asíncrono ' +
+                'Incluye gestión de usuarios, pacientes, análisis de IA asíncrono ' +
                 'y logs de auditoría del procesamiento.',
             contact: {
                 name: 'RetiScan Dev Team',
@@ -18,7 +38,11 @@ const options = {
         servers: [
             {
                 url: `http://localhost:${env.PORT}/api`,
-                description: 'Servidor de desarrollo',
+                description: 'Local (misma máquina)',
+            },
+            {
+                url: `http://${LAN_IP}:${env.PORT}/api`,
+                description: `Red local (LAN) — ${LAN_IP}`,
             },
         ],
         components: {
