@@ -45,7 +45,7 @@ const router = Router();
  */
 router.post('/',
     authMiddleware,
-    requireRole('MEDICO'),
+    requireRole('MEDICO', 'ADMINISTRADOR'),
     patientController.createPatient
 );
 
@@ -76,7 +76,7 @@ router.post('/',
  */
 router.get('/',
     authMiddleware,
-    requireRole('MEDICO', 'PACIENTE'),
+    requireRole('MEDICO', 'PACIENTE', 'ADMINISTRADOR'),
     patientController.getAllPatients
 );
 
@@ -111,7 +111,7 @@ router.get('/',
  */
 router.get('/:id',
     authMiddleware,
-    requireRole('MEDICO', 'PACIENTE'),
+    requireRole('MEDICO', 'PACIENTE', 'ADMINISTRADOR'),
     patientController.getPatientById
 );
 
@@ -160,7 +160,7 @@ router.get('/:id',
  */
 router.put('/:id',
     authMiddleware,
-    requireRole('MEDICO'),
+    requireRole('MEDICO', 'ADMINISTRADOR'),
     patientController.updatePatient
 );
 
@@ -191,7 +191,7 @@ router.put('/:id',
  */
 router.delete('/:id',
     authMiddleware,
-    requireRole('MEDICO'),
+    requireRole('MEDICO', 'ADMINISTRADOR'),
     patientController.deletePatient
 );
 

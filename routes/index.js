@@ -5,6 +5,7 @@ const patientRoutes = require('./patientRoutes');
 const analysisRoutes = require('./analysisRoutes');
 const twoFactorRoutes = require('./twoFactorRoutes');
 const adminRoutes = require('./adminRoutes');
+const userController = require('../controllers/userController');
 
 const router = Router();
 
@@ -16,6 +17,9 @@ router.get('/health', (req, res) => {
         timestamp: new Date().toISOString(),
     });
 });
+
+// Alias: panel calls /api/auth/login (actual login is in /api/users/login)
+router.post('/auth/login', userController.login);
 
 router.use('/users', userRoutes);
 router.use('/patients', patientRoutes);
