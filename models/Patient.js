@@ -29,12 +29,35 @@ const Patient = {
     /**
      * Recupera todos los pacientes de un médico (aislamiento multi-tenant).
      */
-    async findAllByDoctor(doctorId) {
-        const result = await pool.query(
-            'SELECT * FROM patients WHERE doctor_id = $1 ORDER BY created_at DESC',
-            [doctorId]
-        );
-        return result.rows;
+    async findAllByDoctor(doctorId, limit = 50, offset = 0, search = '') {
+        let baseQuery = 'SELECT * FROM patients WHERE doctor_id = $1 AND is_active = true';
+        let countQuery = 'SELECT COUNT(*) FROM patients WHERE doctor_id = $1 AND is_active = true';
+
+        const values = [doctorId];
+        let paramIdx = 2;
+
+        if (search) {
+            const searchClause = ` AND (first_name ILIKE $${paramIdx} OR paternal_surname ILIKE $${paramIdx} OR maternal_surname ILIKE $${paramIdx} OR email ILIKE $${paramIdx})`;
+            baseQuery += searchClause;
+            countQuery += searchClause;
+            values.push(`%${search}%`);
+            paramIdx++;
+        }
+
+        baseQuery += ` ORDER BY created_at DESC LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`;
+        const dataValues = [...values, limit, offset];
+
+        const [dataResult, countResult] = await Promise.all([
+            pool.query(baseQuery, dataValues),
+            pool.query(countQuery, values)
+        ]);
+
+        return {
+            data: dataResult.rows,
+            total: parseInt(countResult.rows[0].count, 10),
+            page: Math.floor(offset / limit) + 1,
+            limit
+        };
     },
 
     /**
@@ -42,7 +65,7 @@ const Patient = {
      */
     async findByIdAndDoctor(id, doctorId) {
         const result = await pool.query(
-            'SELECT * FROM patients WHERE id = $1 AND doctor_id = $2',
+            'SELECT * FROM patients WHERE id = $1 AND doctor_id = $2 AND is_active = true',
             [id, doctorId]
         );
         return result.rows[0] || null;
@@ -51,7 +74,7 @@ const Patient = {
     /** Encuentra un paciente por su user_id vinculado. */
     async findByUserId(userId) {
         const result = await pool.query(
-            'SELECT * FROM patients WHERE user_id = $1',
+            'SELECT * FROM patients WHERE user_id = $1 AND is_active = true',
             [userId]
         );
         return result.rows[0] || null;
@@ -112,10 +135,10 @@ const Patient = {
         return result.rows[0] || null;
     },
 
-    /** Elimina permanentemente un paciente (con verificación de propiedad del médico). */
+    /** Oculta un paciente en lugar de borrarlo físicamente. */
     async deleteByIdAndDoctor(id, doctorId) {
         const result = await pool.query(
-            'DELETE FROM patients WHERE id = $1 AND doctor_id = $2 RETURNING id',
+            'UPDATE patients SET is_active = false, updated_at = NOW() WHERE id = $1 AND doctor_id = $2 RETURNING id',
             [id, doctorId]
         );
         return result.rows[0] || null;

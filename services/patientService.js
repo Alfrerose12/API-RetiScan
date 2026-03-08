@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const Patient = require('../models/Patient');
 const User = require('../models/User');
+const AuditLog = require('../models/AuditLog');
 
 /**
  * Genera un username único para el paciente en formato: nombre.apellido#XXXX
@@ -56,11 +57,10 @@ const patientService = {
         // 2. Generar contraseña temporal segura
         const tempPassword = crypto.randomBytes(9).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
 
-        // 3. Crear cuenta de usuario para el paciente (users usa campo name)
+        // 3. Crear cuenta de usuario para el paciente (users ya no usa campo name)
         const patientUser = await User.create({
             username,
             email: null,
-            name: `${firstName} ${paternalSurname}${maternalSurname ? ' ' + maternalSurname : ''}`,
             plainPassword: tempPassword,
             role: 'PACIENTE',
             mustChangePassword: true,
@@ -77,6 +77,13 @@ const patientService = {
             userId: patientUser.id,
         });
 
+        // Registrar auditoría silente
+        await AuditLog.log(doctorId, 'CREATE', 'PATIENT', patient.id, {
+            firstName,
+            paternalSurname,
+            maternalSurname
+        });
+
         return { patient, patientUser, tempPassword };
     },
 
@@ -84,9 +91,13 @@ const patientService = {
     /**
      * Lista todos los pacientes del médico autenticado (aislamiento multi-tenant).
      * @param {string} doctorId
+     * @param {number} page
+     * @param {number} limit
+     * @param {string} search
      */
-    async getAll(doctorId) {
-        return Patient.findAllByDoctor(doctorId);
+    async getAll(doctorId, page = 1, limit = 50, search = '') {
+        const offset = (page - 1) * limit;
+        return Patient.findAllByDoctor(doctorId, limit, offset, search);
     },
 
     /**
@@ -168,6 +179,10 @@ const patientService = {
             err.statusCode = 404;
             throw err;
         }
+
+        // Registrar auditoría
+        await AuditLog.log(doctorId, 'UPDATE', 'PATIENT', id, fields);
+
         return updated;
     },
 
@@ -183,6 +198,10 @@ const patientService = {
             err.statusCode = 404;
             throw err;
         }
+
+        // Registrar auditoría
+        await AuditLog.log(doctorId, 'SOFT_DELETE', 'PATIENT', id);
+
         return deleted;
     },
 };

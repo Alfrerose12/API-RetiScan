@@ -14,7 +14,6 @@ CREATE TABLE IF NOT EXISTS users (
   id                    UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
   username              VARCHAR(50)  NOT NULL UNIQUE,
   email                 VARCHAR(255) UNIQUE,                          -- Opcional (solo médicos)
-  name                  VARCHAR(150) NOT NULL,
   password_hash         VARCHAR(255) NOT NULL,
   role                  VARCHAR(20)  NOT NULL CHECK (role IN ('MEDICO', 'PACIENTE')),
   must_change_password  BOOLEAN      NOT NULL DEFAULT FALSE,
@@ -30,6 +29,9 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS doctors (
   id               UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id          UUID         NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  first_name       VARCHAR(100) NOT NULL,
+  paternal_surname VARCHAR(100) NOT NULL,
+  maternal_surname VARCHAR(100),
   license_number   VARCHAR(30)  NOT NULL,          -- Cédula profesional
   specialty        VARCHAR(100),
   institution      VARCHAR(150),
@@ -55,6 +57,7 @@ CREATE TABLE IF NOT EXISTS patients (
   phone            VARCHAR(15),
   last_visit       TIMESTAMPTZ,
   total_analyses   INTEGER      NOT NULL DEFAULT 0,
+  is_active        BOOLEAN      NOT NULL DEFAULT TRUE,
   created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
   updated_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
@@ -99,6 +102,29 @@ CREATE TABLE IF NOT EXISTS verifications (
   expires_at  TIMESTAMPTZ  NOT NULL,
   used        BOOLEAN      NOT NULL DEFAULT FALSE,
   created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+-- ─────────────────────────────────────────────
+-- 8. SECURITY (Lista negra de tokens JWT)
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS blacklisted_tokens (
+  token        VARCHAR(512) PRIMARY KEY,
+  expires_at   TIMESTAMPTZ  NOT NULL,
+  created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+
+-- ─────────────────────────────────────────────
+-- 9. AUDIT LOGS (Registro de Actividades)
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id           UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id      UUID         NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  action       VARCHAR(50)  NOT NULL,
+  entity       VARCHAR(50)  NOT NULL,
+  entity_id    UUID         NOT NULL,
+  details      JSONB,
+  created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
 -- ─────────────────────────────────────────────
