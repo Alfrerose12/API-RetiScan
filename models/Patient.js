@@ -66,6 +66,8 @@ const Patient = {
             paternalSurname: 'paternal_surname',
             maternalSurname: 'maternal_surname',
             birthDate: 'birth_date',
+            gender: 'gender',
+            email: 'email',
             phone: 'phone',
             lastVisit: 'last_visit',
             totalAnalyses: 'total_analyses',
