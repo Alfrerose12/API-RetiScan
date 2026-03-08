@@ -1,33 +1,33 @@
 /**
  * otpService.js
  *
- * In-memory OTP store for 2FA verification.
- * Codes are 6 digits, valid for 30 seconds, single-use.
+ * Almacén de OTP en memoria para verificación 2FA.
+ * Los códigos son de 6 dígitos, válidos por 30 segundos, de un solo uso.
  *
- * In production, replace the `send` step with email/SMS delivery
- * and remove the `code` field from the API response.
+ * En producción, reemplace el paso `send` por envío de email/SMS
+ * y elimine el campo `code` de la respuesta de la API.
  */
 
 /** @type {Map<string, { code: string, expiresAt: number }>} */
 const otpStore = new Map();
 
-const OTP_TTL_MS = 30_000; // 30 seconds
+const OTP_TTL_MS = 30_000; // 30 segundos
 
 /**
- * Generate a 6-digit OTP for a given user and store it.
- * Overwrites any existing pending OTP for the same user.
+ * Genera un OTP de 6 dígitos para un usuario dado y lo almacena.
+ * Sobrescribe cualquier OTP pendiente existente para el mismo usuario.
  *
  * @param {string} userId
- * @returns {{ code: string, expiresIn: number }} expiresIn in seconds
+ * @returns {{ code: string, expiresIn: number }} expiresIn en segundos
  */
 function generate(userId) {
-    // Remove any existing OTP for this user
+    // Eliminar cualquier OTP existente para este usuario
     otpStore.delete(userId);
 
-    // Clean up expired entries periodically
+    // Limpiar entradas expiradas periódicamente
     _cleanup();
 
-    const code = String(Math.floor(100000 + Math.random() * 900000)); // 6 digits
+    const code = String(Math.floor(100000 + Math.random() * 900000)); // 6 dígitos
     const expiresAt = Date.now() + OTP_TTL_MS;
 
     otpStore.set(userId, { code, expiresAt });
@@ -36,8 +36,8 @@ function generate(userId) {
 }
 
 /**
- * Verify a 6-digit OTP for a given user.
- * The OTP is consumed (deleted) on first successful verification.
+ * Verifica un OTP de 6 dígitos para un usuario dado.
+ * El OTP se consume (elimina) tras la primera verificación exitosa.
  *
  * @param {string} userId
  * @param {string} code
@@ -59,12 +59,12 @@ function verify(userId, code) {
         return { valid: false, reason: 'Invalid OTP code.' };
     }
 
-    // Consume the OTP — single-use
+    // Consumir el OTP — de un solo uso
     otpStore.delete(userId);
     return { valid: true };
 }
 
-/** Remove all expired entries from the store. */
+/** Elimina todas las entradas caducadas del almacén. */
 function _cleanup() {
     const now = Date.now();
     for (const [userId, entry] of otpStore.entries()) {

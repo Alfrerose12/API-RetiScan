@@ -3,10 +3,10 @@ const crypto = require('crypto');
 
 const AI_Processing_Log = {
     /**
-     * Create a log entry when AI processing begins.
-     * task_id is a unique string PK (e.g. "task_<uuid>").
+     * Crea una entrada de registro cuando comienza el procesamiento de IA.
+     * task_id es una cadena única PK (ej. "task_<uuid>").
      * @param {string} analysisId
-     * @returns {object} The created log row
+     * @returns {object} La fila de registro creada
      */
     async create(analysisId) {
         const taskId = `task_${crypto.randomUUID()}`;
@@ -20,9 +20,9 @@ const AI_Processing_Log = {
     },
 
     /**
-     * Mark processing as complete: set end_time and final status.
-     * @param {string} taskId   - The task_id (PK) of the log entry
-     * @param {string} status   - Final status: 'COMPLETED' or 'FAILED'
+     * Marca el procesamiento como completo: establece end_time y el estado final.
+     * @param {string} taskId   - El task_id (PK) de la entrada de registro
+     * @param {string} status   - Estado final: 'COMPLETED' o 'FAILED'
      */
     async complete(taskId, status = 'COMPLETED') {
         const result = await pool.query(
@@ -36,7 +36,7 @@ const AI_Processing_Log = {
         return result.rows[0] || null;
     },
 
-    /** Retrieve all log entries for a given analysis. */
+    /** Recupera todas las entradas de registro para un análisis dado. */
     async findByAnalysisId(analysisId) {
         const result = await pool.query(
             `SELECT * FROM ai_processing_logs
@@ -47,7 +47,7 @@ const AI_Processing_Log = {
         return result.rows;
     },
 
-    /** Retrieve a single log entry by task_id. */
+    /** Recupera una sola entrada de registro por task_id. */
     async findById(taskId) {
         const result = await pool.query(
             'SELECT * FROM ai_processing_logs WHERE task_id = $1',
@@ -56,7 +56,7 @@ const AI_Processing_Log = {
         return result.rows[0] || null;
     },
 
-    /** Hard-delete a log entry. */
+    /** Elimina permanentemente una entrada de registro. */
     async deleteById(taskId) {
         const result = await pool.query(
             'DELETE FROM ai_processing_logs WHERE task_id = $1 RETURNING task_id',

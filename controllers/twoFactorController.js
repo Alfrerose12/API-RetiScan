@@ -4,10 +4,10 @@ const twoFactorController = {
     /**
      * POST /api/auth/2fa/send
      *
-     * Generates a 6-digit OTP for the authenticated user and returns it.
-     * The client (PWA) displays it in the verification banner.
+     * Genera un OTP de 6 dígitos para el usuario autenticado y lo devuelve.
+     * El cliente (PWA) lo muestra en el banner de verificación.
      *
-     * ⚠️  In production: send via email/SMS and omit `code` from the response.
+     * ⚠️  En producción: enviar por email/SMS y omitir `code` de la respuesta.
      */
     async sendOtp(req, res, next) {
         try {
@@ -15,8 +15,8 @@ const twoFactorController = {
 
             return res.status(200).json({
                 message: '2FA code generated successfully',
-                code,        // ← Remove in production (send via email/SMS instead)
-                expiresIn,   // seconds
+                code,        // ← Eliminar en producción (enviar por email/SMS en su lugar)
+                expiresIn,   // segundos
             });
         } catch (err) {
             next(err);
@@ -27,7 +27,7 @@ const twoFactorController = {
      * POST /api/auth/2fa/verify
      * Body: { code: "123456" }
      *
-     * Verifies the OTP entered by the user. Returns 200 if valid, 400 if not.
+     * Verifica el OTP ingresado por el usuario. Devuelve 200 si es válido, 400 si no.
      */
     async verifyOtp(req, res, next) {
         try {

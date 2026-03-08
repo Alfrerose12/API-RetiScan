@@ -1,11 +1,11 @@
 /**
  * errorMiddleware.js
  *
- * Global Express error handler. Must be registered LAST in app.js
- * (after all routes) and must have exactly 4 parameters.
+ * Manejador global de errores de Express. Debe registrarse al FINAL en app.js
+ * (después de todas las rutas) y debe tener exactamente 4 parámetros.
  *
- * Services throw Errors with an optional .statusCode property.
- * This middleware reads that code so controllers don't need to.
+ * Los servicios lanzan Errores con una propiedad opcional .statusCode.
+ * Este middleware lee ese código para que los controladores no tengan que hacerlo.
  */
 
 // eslint-disable-next-line no-unused-vars

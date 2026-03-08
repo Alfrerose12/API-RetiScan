@@ -2,6 +2,7 @@ const { Router } = require('express');
 const analysisController = require('../controllers/analysisController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const requireRole = require('../middlewares/roleMiddleware');
+const subscriptionMiddleware = require('../middlewares/subscriptionMiddleware');
 
 const router = Router();
 
@@ -9,18 +10,18 @@ const router = Router();
  * @swagger
  * tags:
  *   name: Analyses
- *   description: >
- *     Análisis de retinopatía con pipeline de IA asíncrono.
- *     Al crear un análisis, la respuesta es 202 Accepted con status PENDING.
- *     El sistema lo procesa en background (PENDING → PROCESSING → COMPLETED).
- *     Haz polling a GET /analyses/:id para obtener el resultado.
+ *   description: Análisis de retinopatía con pipeline de IA asíncrono
  */
 
 /**
  * @swagger
  * /analyses:
  *   post:
- *     summary: Crear un nuevo análisis (dispara pipeline de IA asíncrono)
+ *     summary: Crear análisis (dispara pipeline de IA asíncrono)
+ *     description: |
+ *       La respuesta es 202 Accepted con status PENDING.
+ *       El sistema procesa en background: PENDING → PROCESSING → COMPLETED.
+ *       Haz polling a GET /analyses/:id para obtener el resultado.
  *     tags: [Analyses]
  *     security:
  *       - bearerAuth: []
@@ -32,34 +33,46 @@ const router = Router();
  *             $ref: '#/components/schemas/AnalysisRequest'
  *     responses:
  *       202:
- *         description: >
- *           Análisis en cola — devuelve el registro con status PENDING.
- *           El AI result se completará asíncronamente en 2–5 segundos.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:  { type: string }
- *                 analysis: { $ref: '#/components/schemas/Analysis' }
+ *         description: Análisis en cola con status PENDING
  *       400:
- *         description: patientId es requerido
- *       401:
- *         description: Token inválido o faltante
+ *         description: patientId o eye inválidos
+ *       402:
+ *         description: Suscripción inactiva o expirada
  *       403:
- *         description: Acceso denegado — se requiere rol MEDICO
+ *         description: Se requiere rol MEDICO
+ *       404:
+ *         description: Paciente no encontrado o no pertenece a este médico
  */
 router.post('/',
     authMiddleware,
     requireRole('MEDICO'),
+    subscriptionMiddleware,
     analysisController.createAnalysis
+);
+
+/**
+ * @swagger
+ * /analyses/my:
+ *   get:
+ *     summary: Ver mis análisis (solo PACIENTE)
+ *     tags: [Analyses]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de análisis del paciente autenticado
+ */
+router.get('/my',
+    authMiddleware,
+    requireRole('PACIENTE'),
+    analysisController.getMyAnalyses
 );
 
 /**
  * @swagger
  * /analyses/patient/{patientId}:
  *   get:
- *     summary: Listar todos los análisis de un paciente
+ *     summary: Listar análisis de un paciente (solo del médico autenticado)
  *     tags: [Analyses]
  *     security:
  *       - bearerAuth: []
@@ -67,30 +80,14 @@ router.post('/',
  *       - in: path
  *         name: patientId
  *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: UUID del paciente
+ *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
  *         description: Lista de análisis del paciente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 count:
- *                   type: integer
- *                 analyses:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Analysis'
- *       401:
- *         description: Token inválido o faltante
  */
 router.get('/patient/:patientId',
     authMiddleware,
-    requireRole('MEDICO', 'PACIENTE'),
+    requireRole('MEDICO'),
     analysisController.getAnalysisByPatient
 );
 
@@ -98,7 +95,7 @@ router.get('/patient/:patientId',
  * @swagger
  * /analyses/{id}:
  *   get:
- *     summary: Obtener un análisis por ID (polling de status)
+ *     summary: Obtener análisis por ID (polling de status)
  *     tags: [Analyses]
  *     security:
  *       - bearerAuth: []
@@ -106,30 +103,16 @@ router.get('/patient/:patientId',
  *       - in: path
  *         name: id
  *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: UUID del análisis
+ *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: >
- *           Datos del análisis. El campo `status` cambia de
- *           PENDING → PROCESSING → COMPLETED mientras la IA trabaja.
- *           El campo `ai_result` estará disponible al llegar a COMPLETED.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 analysis: { $ref: '#/components/schemas/Analysis' }
- *       401:
- *         description: Token inválido o faltante
+ *         description: Datos del análisis (status cambia con el tiempo)
  *       404:
  *         description: Análisis no encontrado
  */
 router.get('/:id',
     authMiddleware,
-    requireRole('MEDICO', 'PACIENTE'),
+    requireRole('MEDICO'),
     analysisController.getAnalysisById
 );
 
@@ -137,7 +120,7 @@ router.get('/:id',
  * @swagger
  * /analyses/{id}/logs:
  *   get:
- *     summary: Obtener logs de auditoría del procesamiento de IA
+ *     summary: Logs de auditoría del procesamiento de IA
  *     tags: [Analyses]
  *     security:
  *       - bearerAuth: []
@@ -145,28 +128,10 @@ router.get('/:id',
  *       - in: path
  *         name: id
  *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: UUID del análisis
+ *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Logs de procesamiento (incluye started_at, finished_at, duration_ms)
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 count:
- *                   type: integer
- *                 logs:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/AIProcessingLog'
- *       401:
- *         description: Token inválido o faltante
- *       403:
- *         description: Acceso denegado — se requiere rol MEDICO
+ *         description: Logs de procesamiento
  */
 router.get('/:id/logs',
     authMiddleware,
@@ -178,7 +143,7 @@ router.get('/:id/logs',
  * @swagger
  * /analyses/{id}:
  *   delete:
- *     summary: Eliminar un análisis (y sus logs en cascada)
+ *     summary: Eliminar análisis (solo del médico autenticado)
  *     tags: [Analyses]
  *     security:
  *       - bearerAuth: []
@@ -186,22 +151,19 @@ router.get('/:id/logs',
  *       - in: path
  *         name: id
  *         required: true
- *         schema:
- *           type: string
- *           format: uuid
+ *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
  *         description: Análisis eliminado
- *       401:
- *         description: Token inválido o faltante
- *       403:
- *         description: Acceso denegado — se requiere rol MEDICO
+ *       402:
+ *         description: Suscripción inactiva o expirada
  *       404:
  *         description: Análisis no encontrado
  */
 router.delete('/:id',
     authMiddleware,
     requireRole('MEDICO'),
+    subscriptionMiddleware,
     analysisController.deleteAnalysis
 );
 

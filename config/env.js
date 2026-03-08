@@ -1,15 +1,15 @@
 /**
  * config/env.js
  * ─────────────────────────────────────────────────────────────
- * Single source of truth for all environment variables.
- * Load this module ONCE (in app.js entry point).
- * All other modules import from here instead of reading
- * process.env or calling require('dotenv').config() themselves.
+ * Única fuente de verdad para todas las variables de entorno.
+ * Carga este módulo UNA VEZ (en el punto de entrada app.js).
+ * Todos los demás módulos importan desde aquí en lugar de leer
+ * process.env o llamar require('dotenv').config() por sí mismos.
  * ─────────────────────────────────────────────────────────────
  */
 require('dotenv').config();
 
-// ── Required variables — crash fast if missing in production ──
+// ── Variables requeridas — falla rápido si faltan en producción ──
 const REQUIRED_IN_PROD = ['JWT_SECRET', 'DB_PASSWORD'];
 if (process.env.NODE_ENV === 'production') {
     for (const key of REQUIRED_IN_PROD) {
@@ -20,7 +20,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const env = {
-    // ── Server ──────────────────────────────────────────────
+    // ── Servidor ──────────────────────────────────────────────
     PORT: parseInt(process.env.PORT) || 3000,
     NODE_ENV: process.env.NODE_ENV || 'development',
 
@@ -37,6 +37,14 @@ const env = {
 
     // ── Bcrypt ───────────────────────────────────────────────
     BCRYPT_SALT_ROUNDS: parseInt(process.env.BCRYPT_SALT_ROUNDS) || 10,
+
+    // ── Email (Gmail SMTP) ───────────────────────────────────
+    SMTP_USER: process.env.SMTP_USER || '',
+    SMTP_PASS: process.env.SMTP_PASS || '',
+    SMTP_FROM: process.env.SMTP_FROM || 'RetiScan <no-reply@retiscan.com>',
+
+    // ── App ──────────────────────────────────────────────────
+    APP_URL: process.env.APP_URL || 'http://localhost:3000',
 };
 
 module.exports = env;

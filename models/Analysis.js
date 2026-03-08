@@ -2,41 +2,66 @@ const pool = require('../config/database');
 
 const Analysis = {
     /**
-     * Create a new analysis in PENDING status.
-     * image_uri is auto-generated as a placeholder; ai_result starts as NULL.
+     * Crea un nuevo análisis en estado PENDING.
      * @param {string} patientId
-     * @param {string} [imageUri]  - Optional URI of the uploaded image
+     * @param {string} doctorId   - Para aislamiento multi-tenant
+     * @param {string} eye        - 'LEFT' o 'RIGHT'
+     * @param {string} [imageUri]
+     * @param {string} [doctorNotes]
      */
-    async create(patientId, imageUri) {
-        // Generate a placeholder URI if no image is provided yet
+    async create(patientId, doctorId, eye, imageUri, doctorNotes = null) {
         const uri = imageUri || `retiscan://pending/${require('crypto').randomUUID()}`;
         const result = await pool.query(
-            `INSERT INTO analyses (patient_id, image_uri, status, ai_result)
-       VALUES ($1, $2, 'PENDING', NULL)
+            `INSERT INTO analyses (patient_id, doctor_id, eye, image_uri, doctor_notes, status, ai_result)
+       VALUES ($1, $2, $3, $4, $5, 'PENDING', NULL)
        RETURNING *`,
-            [patientId, uri]
+            [patientId, doctorId, eye, uri, doctorNotes]
         );
         return result.rows[0];
     },
 
-    /** Retrieve all analyses ordered by newest first. */
-    async findAll() {
+    /**
+     * Recupera todos los análisis de un médico (aislamiento).
+     * @param {string} doctorId
+     */
+    async findAllByDoctor(doctorId) {
         const result = await pool.query(
-            'SELECT * FROM analyses ORDER BY created_at DESC'
+            'SELECT * FROM analyses WHERE doctor_id = $1 ORDER BY created_at DESC',
+            [doctorId]
         );
         return result.rows;
     },
 
-    /** Find a single analysis by UUID. */
-    async findById(id) {
+    /**
+     * Encuentra todos los análisis de un paciente, verificando propiedad del médico.
+     * @param {string} patientId
+     * @param {string} doctorId
+     */
+    async findByPatientAndDoctor(patientId, doctorId) {
         const result = await pool.query(
-            'SELECT * FROM analyses WHERE id = $1',
-            [id]
+            'SELECT * FROM analyses WHERE patient_id = $1 AND doctor_id = $2 ORDER BY created_at DESC',
+            [patientId, doctorId]
+        );
+        return result.rows;
+    },
+
+    /**
+     * Encuentra un análisis por UUID verificando propiedad del médico.
+     * @param {string} id
+     * @param {string} doctorId
+     */
+    async findByIdAndDoctor(id, doctorId) {
+        const result = await pool.query(
+            'SELECT * FROM analyses WHERE id = $1 AND doctor_id = $2',
+            [id, doctorId]
         );
         return result.rows[0] || null;
     },
 
-    /** Find all analyses for a given patient. */
+    /**
+     * Variante para pacientes: encuentra análisis del paciente sin restricción de doctor.
+     * @param {string} patientId
+     */
     async findByPatientId(patientId) {
         const result = await pool.query(
             'SELECT * FROM analyses WHERE patient_id = $1 ORDER BY created_at DESC',
@@ -45,11 +70,20 @@ const Analysis = {
         return result.rows;
     },
 
+    /** Encuentra un análisis por UUID (uso interno del worker de IA). */
+    async findById(id) {
+        const result = await pool.query(
+            'SELECT * FROM analyses WHERE id = $1',
+            [id]
+        );
+        return result.rows[0] || null;
+    },
+
     /**
-     * Update the status and optionally the ai_result of an analysis.
+     * Actualiza el estado y opcionalmente el ai_result de un análisis.
      * @param {string} id
      * @param {'PENDING'|'PROCESSING'|'COMPLETED'|'FAILED'} status
-     * @param {object|null} aiResult  - JSONB payload from the AI model
+     * @param {object|null} aiResult - Payload JSONB del modelo de IA
      */
     async updateStatus(id, status, aiResult = null) {
         const result = await pool.query(
@@ -64,11 +98,14 @@ const Analysis = {
         return result.rows[0] || null;
     },
 
-    /** Permanently delete an analysis (also cascades its logs). */
-    async deleteById(id) {
+    /**
+     * Elimina permanentemente un análisis (también en cascada sus registros).
+     * Solo si pertenece al médico.
+     */
+    async deleteByIdAndDoctor(id, doctorId) {
         const result = await pool.query(
-            'DELETE FROM analyses WHERE id = $1 RETURNING id',
-            [id]
+            'DELETE FROM analyses WHERE id = $1 AND doctor_id = $2 RETURNING id',
+            [id, doctorId]
         );
         return result.rows[0] || null;
     },

@@ -31,6 +31,20 @@ const options = {
                 },
             },
             schemas: {
+                // ── Auth ───────────────────────────────────────────────────────────
+                DoctorRegisterRequest: {
+                    type: 'object',
+                    required: ['name', 'email', 'password', 'licenseNumber'],
+                    properties: {
+                        name: { type: 'string', example: 'Dr. García López', description: 'Nombre completo del médico' },
+                        email: { type: 'string', format: 'email', example: 'doctor@hospital.com' },
+                        password: { type: 'string', minLength: 6, example: 'SecurePass123' },
+                        licenseNumber: { type: 'string', example: '12345678', description: 'Cédula profesional' },
+                        specialty: { type: 'string', example: 'Oftalmología' },
+                        institution: { type: 'string', example: 'Hospital General de México' },
+                        phone: { type: 'string', example: '555-123-4567' },
+                    },
+                },
                 // ── Users ──────────────────────────────────────────────────────────
                 RegisterRequest: {
                     type: 'object',
@@ -40,13 +54,13 @@ const options = {
                         name: { type: 'string', example: 'Dr. García López' },
                         password: { type: 'string', minLength: 6, example: 'SecurePass123' },
                     },
-                    description: 'El rol se asigna automáticamente: @retiscan.com → MEDICO, @yada.com → ADMINISTRADOR, otros → PACIENTE',
+                    description: 'El rol se asigna automáticamente: @retiscan.com → MEDICO, otros → PACIENTE',
                 },
                 LoginRequest: {
                     type: 'object',
-                    required: ['email', 'password'],
+                    required: ['identifier', 'password'],
                     properties: {
-                        email: { type: 'string', format: 'email', example: 'medico@retiscan.com' },
+                        identifier: { type: 'string', example: 'medico@retiscan.com', description: 'Email (médico) o username (paciente)' },
                         password: { type: 'string', example: 'SecurePass123' },
                     },
                 },
@@ -54,9 +68,12 @@ const options = {
                     type: 'object',
                     properties: {
                         id: { type: 'string', format: 'uuid' },
-                        email: { type: 'string', format: 'email' },
+                        username: { type: 'string', example: 'doctor.garcia' },
+                        email: { type: 'string', format: 'email', nullable: true },
                         name: { type: 'string', example: 'Dr. García López' },
-                        role: { type: 'string', enum: ['MEDICO', 'PACIENTE', 'ADMINISTRADOR'] },
+                        role: { type: 'string', enum: ['MEDICO', 'PACIENTE'] },
+                        is_verified: { type: 'boolean' },
+                        subscription_end_date: { type: 'string', format: 'date-time', nullable: true },
                         created_at: { type: 'string', format: 'date-time' },
                         updated_at: { type: 'string', format: 'date-time' },
                     },
@@ -69,48 +86,28 @@ const options = {
                         user: { $ref: '#/components/schemas/User' },
                     },
                 },
-                // ── Admin ──────────────────────────────────────────────────────────
-                CreateDoctorRequest: {
-                    type: 'object',
-                    required: ['name'],
-                    properties: {
-                        name: {
-                            type: 'string',
-                            example: 'Dr. Juan García López',
-                            description: 'Nombre completo del médico. Se usa para generar el email automáticamente.',
-                        },
-                    },
-                },
-                CreateDoctorResponse: {
-                    type: 'object',
-                    properties: {
-                        message: { type: 'string', example: 'Médico creado exitosamente' },
-                        user: { $ref: '#/components/schemas/User' },
-                        tempPassword: {
-                            type: 'string',
-                            example: 'aB3xKq9mZp1w',
-                            description: 'Contraseña temporal generada. Compartirla con el médico.',
-                        },
-                        note: { type: 'string', example: 'Comparte estas credenciales con el médico.' },
-                    },
-                },
-                // ── Patients ───────────────────────────────────────────────────────
+                // ── Patients ──────────────────────────────────────────────────────────────────
                 PatientRequest: {
                     type: 'object',
-                    required: ['fullName', 'age'],
+                    required: ['firstName', 'paternalSurname'],
+                    description: 'El médico solo ingresa el nombre. birthDate, gender, email y phone los llena el paciente en su primer login.',
                     properties: {
-                        fullName: { type: 'string', example: 'Juan Pérez García' },
-                        age: { type: 'integer', minimum: 1, maximum: 149, example: 52 },
-                        phone: { type: 'string', example: '555-123-4567' },
+                        firstName: { type: 'string', example: 'Juan' },
+                        paternalSurname: { type: 'string', example: 'Pérez' },
+                        maternalSurname: { type: 'string', example: 'García' },
                     },
                 },
+
                 Patient: {
                     type: 'object',
                     properties: {
                         id: { type: 'string', format: 'uuid' },
-                        doctor_id: { type: 'string', format: 'uuid', nullable: true },
-                        full_name: { type: 'string' },
-                        age: { type: 'integer' },
+                        doctor_id: { type: 'string', format: 'uuid' },
+                        user_id: { type: 'string', format: 'uuid', nullable: true },
+                        first_name: { type: 'string', example: 'Juan' },
+                        paternal_surname: { type: 'string', example: 'Pérez' },
+                        maternal_surname: { type: 'string', example: 'García', nullable: true },
+                        birth_date: { type: 'string', format: 'date' },
                         phone: { type: 'string', nullable: true },
                         last_visit: { type: 'string', format: 'date-time', nullable: true },
                         total_analyses: { type: 'integer' },
@@ -121,9 +118,12 @@ const options = {
                 // ── Analysis ───────────────────────────────────────────────────────
                 AnalysisRequest: {
                     type: 'object',
-                    required: ['patientId'],
+                    required: ['patientId', 'eye'],
                     properties: {
                         patientId: { type: 'string', format: 'uuid', example: 'a1b2c3d4-...' },
+                        eye: { type: 'string', enum: ['LEFT', 'RIGHT'] },
+                        doctorNotes: { type: 'string', example: 'Paciente refiere visión borrosa desde hace 2 semanas' },
+                        imageUri: { type: 'string', example: 'retiscan://uploads/fundus_20240301.png' },
                     },
                 },
                 AIResult: {
@@ -169,6 +169,32 @@ const options = {
                     },
                 },
                 // ── Generic ────────────────────────────────────────────────────────
+                // ── Doctors ──────────────────────────────────────────────────────
+                DoctorProfileRequest: {
+                    type: 'object',
+                    required: ['licenseNumber'],
+                    properties: {
+                        licenseNumber: { type: 'string', example: '1234567' },
+                        specialty: { type: 'string', example: 'Oftalmología' },
+                        institution: { type: 'string', example: 'Hospital General' },
+                        phone: { type: 'string', example: '555-123-4567' },
+                    },
+                },
+                DoctorProfile: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string', format: 'uuid' },
+                        user_id: { type: 'string', format: 'uuid' },
+                        license_number: { type: 'string', example: '1234567' },
+                        specialty: { type: 'string', nullable: true },
+                        institution: { type: 'string', nullable: true },
+                        phone: { type: 'string', nullable: true },
+                        verified_at: { type: 'string', format: 'date-time', nullable: true },
+                        created_at: { type: 'string', format: 'date-time' },
+                    },
+                },
+                // ── Generic ────────────────────────────────────────────────────────
+
                 Error: {
                     type: 'object',
                     properties: {
@@ -180,7 +206,7 @@ const options = {
         },
         security: [{ bearerAuth: [] }],
     },
-    // Glob pattern to scan for JSDoc @swagger comments
+    // Patrón glob para buscar comentarios JSDoc y @swagger
     apis: ['./routes/*.js'],
 };
 

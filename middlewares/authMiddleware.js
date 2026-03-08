@@ -3,8 +3,8 @@ const env = require('../config/env');
 
 /**
  * authMiddleware
- * Validates the Bearer token from the Authorization header.
- * Attaches the decoded payload to req.user.
+ * Valida el token Bearer del encabezado de Autorización.
+ * Adjunta el payload decodificado a req.user.
  */
 function authMiddleware(req, res, next) {
     const authHeader = req.headers['authorization'];

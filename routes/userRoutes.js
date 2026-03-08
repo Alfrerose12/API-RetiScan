@@ -4,81 +4,16 @@ const authMiddleware = require('../middlewares/authMiddleware');
 
 const router = Router();
 
-// ─────────────────────────────────────────────
-// Public routes
-// ─────────────────────────────────────────────
-
 /**
  * @swagger
  * tags:
  *   name: Users
- *   description: Gestión de usuarios y autenticación
+ *   description: Perfil y gestión de la cuenta del usuario autenticado
  */
 
-/**
- * @swagger
- * /users/register:
- *   post:
- *     summary: Registrar un nuevo usuario
- *     description: |
- *       El rol se asigna automáticamente según el dominio del email:
- *       - `@retiscan.com` → **MEDICO**
- *       - `@yada.com` → **ADMINISTRADOR**
- *       - Cualquier otro dominio → **PACIENTE**
- *     tags: [Users]
- *     security: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/RegisterRequest'
- *     responses:
- *       201:
- *         description: Usuario registrado exitosamente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message: { type: string }
- *                 user:    { $ref: '#/components/schemas/User' }
- *       400:
- *         description: Campos requeridos faltantes
- *       409:
- *         description: Email ya registrado
- */
-router.post('/register', userController.register);
-
-/**
- * @swagger
- * /users/login:
- *   post:
- *     summary: Iniciar sesión y obtener token JWT
- *     tags: [Users]
- *     security: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/LoginRequest'
- *     responses:
- *       200:
- *         description: Login exitoso — incluye token JWT
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/LoginResponse'
- *       400:
- *         description: Campos requeridos faltantes
- *       401:
- *         description: Credenciales inválidas
- */
-router.post('/login', userController.login);
 
 // ─────────────────────────────────────────────
-// Protected routes
+// Rutas protegidas
 // ─────────────────────────────────────────────
 
 /**
@@ -119,7 +54,7 @@ router.get('/profile', authMiddleware, userController.getProfile);
  *             properties:
  *               email:    { type: string, format: email }
  *               password: { type: string, minLength: 6 }
- *               role:     { type: string, enum: [MEDICO, PACIENTE, ADMINISTRADOR] }
+ *               role:     { type: string, enum: [MEDICO, PACIENTE] }
  *     responses:
  *       200:
  *         description: Perfil actualizado

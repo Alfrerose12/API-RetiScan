@@ -2,38 +2,34 @@ const pool = require('../config/database');
 
 const Patient = {
     /**
-     * Create a new patient record.
-     * @param {{ fullName: string, age: number, phone?: string, doctorId?: string }} data
+     * Crea un nuevo registro de paciente.
+     * @param {{ firstName, paternalSurname, maternalSurname, birthDate, phone, doctorId, userId? }} data
      */
-    async create({ fullName, age, phone, doctorId }) {
+    async create({ firstName, paternalSurname, maternalSurname, birthDate, phone, doctorId, userId = null }) {
         const result = await pool.query(
-            `INSERT INTO patients (full_name, age, phone, doctor_id)
-       VALUES ($1, $2, $3, $4)
+            `INSERT INTO patients (first_name, paternal_surname, maternal_surname, birth_date, phone, doctor_id, user_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-            [fullName, age, phone || null, doctorId || null]
+            [firstName, paternalSurname, maternalSurname || null, birthDate, phone || null, doctorId, userId]
         );
         return result.rows[0];
     },
 
-    /** Retrieve all patients ordered by most recently created. */
-    async findAll() {
+    /**
+     * Vincula una cuenta de usuario (user_id) a un registro de paciente.
+     */
+    async linkUser(patientId, userId) {
         const result = await pool.query(
-            'SELECT * FROM patients ORDER BY created_at DESC'
-        );
-        return result.rows;
-    },
-
-    /** Find a single patient by UUID. */
-    async findById(id) {
-        const result = await pool.query(
-            'SELECT * FROM patients WHERE id = $1',
-            [id]
+            `UPDATE patients SET user_id = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+            [userId, patientId]
         );
         return result.rows[0] || null;
     },
 
-    /** Find all patients linked to a specific doctor account. */
-    async findByDoctorId(doctorId) {
+    /**
+     * Recupera todos los pacientes de un médico (aislamiento multi-tenant).
+     */
+    async findAllByDoctor(doctorId) {
         const result = await pool.query(
             'SELECT * FROM patients WHERE doctor_id = $1 ORDER BY created_at DESC',
             [doctorId]
@@ -42,14 +38,34 @@ const Patient = {
     },
 
     /**
-     * Update patient fields.
-     * @param {string} id
-     * @param {{ fullName?: string, age?: number, phone?: string, lastVisit?: string, totalAnalyses?: number }} fields
+     * Encuentra un paciente por UUID, verificando que pertenezca al médico.
      */
-    async updateById(id, fields) {
+    async findByIdAndDoctor(id, doctorId) {
+        const result = await pool.query(
+            'SELECT * FROM patients WHERE id = $1 AND doctor_id = $2',
+            [id, doctorId]
+        );
+        return result.rows[0] || null;
+    },
+
+    /** Encuentra un paciente por su user_id vinculado. */
+    async findByUserId(userId) {
+        const result = await pool.query(
+            'SELECT * FROM patients WHERE user_id = $1',
+            [userId]
+        );
+        return result.rows[0] || null;
+    },
+
+    /**
+     * Actualiza los campos de un paciente (con validación de propiedad del médico).
+     */
+    async updateByIdAndDoctor(id, doctorId, fields) {
         const map = {
-            fullName: 'full_name',
-            age: 'age',
+            firstName: 'first_name',
+            paternalSurname: 'paternal_surname',
+            maternalSurname: 'maternal_surname',
+            birthDate: 'birth_date',
             phone: 'phone',
             lastVisit: 'last_visit',
             totalAnalyses: 'total_analyses',
@@ -69,18 +85,18 @@ const Patient = {
         if (!setClauses.length) return null;
 
         setClauses.push(`updated_at = NOW()`);
-        values.push(id);
+        values.push(id, doctorId);
 
         const result = await pool.query(
             `UPDATE patients SET ${setClauses.join(', ')}
-       WHERE id = $${idx}
+       WHERE id = $${idx} AND doctor_id = $${idx + 1}
        RETURNING *`,
             values
         );
         return result.rows[0] || null;
     },
 
-    /** Increment total_analyses counter and set last_visit to NOW(). */
+    /** Incrementa el contador total_analyses y actualiza last_visit. */
     async incrementAnalyses(id) {
         const result = await pool.query(
             `UPDATE patients
@@ -94,11 +110,11 @@ const Patient = {
         return result.rows[0] || null;
     },
 
-    /** Permanently delete a patient and all linked analyses (CASCADE). */
-    async deleteById(id) {
+    /** Elimina permanentemente un paciente (con verificación de propiedad del médico). */
+    async deleteByIdAndDoctor(id, doctorId) {
         const result = await pool.query(
-            'DELETE FROM patients WHERE id = $1 RETURNING id',
-            [id]
+            'DELETE FROM patients WHERE id = $1 AND doctor_id = $2 RETURNING id',
+            [id, doctorId]
         );
         return result.rows[0] || null;
     },

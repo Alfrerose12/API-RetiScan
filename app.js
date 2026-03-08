@@ -12,7 +12,7 @@ const errorMiddleware = require('./middlewares/errorMiddleware');
 const app = express();
 const PORT = env.PORT;
 
-// ── Global Middleware ──────────────────────────────────────────────────────
+// ── Middleware Global ──────────────────────────────────────────────────────
 app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
@@ -40,27 +40,27 @@ app.use(
     swaggerUi.setup(swaggerSpec, swaggerUiOptions)
 );
 
-// Expose raw OpenAPI JSON spec (useful for Postman import / code-gen tools)
+// Expone la especificación OpenAPI en formato crudo JSON (útil para importar en Postman / herramientas de generación de código)
 app.get('/api/docs.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(swaggerSpec);
 });
 
-// ── API Routes ─────────────────────────────────────────────────────────────
+// ── Rutas de la API ─────────────────────────────────────────────────────────────
 app.use('/api', routes);
 
-// ── 404 Handler ────────────────────────────────────────────────────────────
+// ── Manejador 404 ────────────────────────────────────────────────────────────
 app.use((req, res) => {
     res.status(404).json({ error: `Route not found: ${req.method} ${req.originalUrl}` });
 });
 
-// ── Global Error Handler (must be last) ───────────────────────────────────
+// ── Manejador Global de Errores (debe ir al final) ───────────────────────────────────
 app.use(errorMiddleware);
 
-// ── Start Server ───────────────────────────────────────────────────────────
+// ── Iniciar Servidor ───────────────────────────────────────────────────────────
 app.listen(PORT, () => {
-    console.log(`\n🚀 RetiScan API running on http://localhost:${PORT}`);
-    console.log(`   Environment : ${env.NODE_ENV}`);
+    console.log(`\n🚀 RetiScan API corriendo en http://localhost:${PORT}`);
+    console.log(`   Entorno : ${env.NODE_ENV}`);
     console.log(`   Health check: http://localhost:${PORT}/api/health`);
     console.log(`   Swagger UI  : http://localhost:${PORT}/api/docs`);
     console.log(`   OpenAPI JSON: http://localhost:${PORT}/api/docs.json\n`);
