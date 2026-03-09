@@ -38,8 +38,18 @@ const patientController = {
      */
     async getAllPatients(req, res, next) {
         try {
-            const patients = await patientService.getAll(req.user.id);
-            return res.status(200).json({ count: patients.length, patients });
+            const page = parseInt(req.query.page, 10) || 1;
+            const limit = parseInt(req.query.limit, 10) || 50;
+            const search = req.query.search || '';
+
+            const data = await patientService.getAll(req.user.id, page, limit, search);
+
+            return res.status(200).json({
+                patients: data.data,
+                total: data.total,
+                page: data.page,
+                limit: data.limit
+            });
         } catch (err) {
             next(err);
         }
@@ -67,6 +77,7 @@ const patientController = {
      */
     async updateMyProfile(req, res, next) {
         try {
+            console.log('--- REQ.BODY UPDATE PROFILE ---:', req.body);
             const { birthDate, gender, email, phone } = req.body;
 
             // Validar género si viene

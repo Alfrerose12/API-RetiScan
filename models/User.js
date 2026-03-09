@@ -7,13 +7,13 @@ const User = {
      * Crea un nuevo usuario con contraseña hasheada.
      * @param {{ username, email, name, plainPassword, role, mustChangePassword, subscriptionEndDate }} data
      */
-    async create({ username, email, name, plainPassword, role, mustChangePassword = false, subscriptionEndDate = null }) {
+    async create({ username, email, plainPassword, role, mustChangePassword = false, subscriptionEndDate = null }) {
         const passwordHash = await bcrypt.hash(plainPassword, env.BCRYPT_SALT_ROUNDS);
         const result = await pool.query(
-            `INSERT INTO users (username, email, name, password_hash, role, must_change_password, subscription_end_date)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id, username, email, name, role, must_change_password, is_verified, subscription_end_date, created_at`,
-            [username, email || null, name, passwordHash, role, mustChangePassword, subscriptionEndDate]
+            `INSERT INTO users (username, email, password_hash, role, must_change_password, subscription_end_date)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, username, email, role, must_change_password, is_verified, subscription_end_date, created_at`,
+            [username, email || null, passwordHash, role, mustChangePassword, subscriptionEndDate]
         );
         return result.rows[0];
     },
@@ -39,7 +39,7 @@ const User = {
     /** Busca un usuario por UUID (excluye password_hash). */
     async findById(id) {
         const result = await pool.query(
-            'SELECT id, username, email, name, role, must_change_password, is_verified, subscription_end_date, created_at, updated_at FROM users WHERE id = $1',
+            'SELECT id, username, email, role, must_change_password, is_verified, subscription_end_date, created_at, updated_at FROM users WHERE id = $1',
             [id]
         );
         return result.rows[0] || null;
@@ -55,7 +55,6 @@ const User = {
         let idx = 1;
 
         if (fields.email !== undefined) { setClauses.push(`email = $${idx++}`); values.push(fields.email); }
-        if (fields.name) { setClauses.push(`name = $${idx++}`); values.push(fields.name); }
         if (fields.role) { setClauses.push(`role = $${idx++}`); values.push(fields.role); }
         if (fields.is_verified !== undefined) { setClauses.push(`is_verified = $${idx++}`); values.push(fields.is_verified); }
         if (fields.subscription_end_date !== undefined) { setClauses.push(`subscription_end_date = $${idx++}`); values.push(fields.subscription_end_date); }
@@ -73,7 +72,7 @@ const User = {
         const result = await pool.query(
             `UPDATE users SET ${setClauses.join(', ')}
        WHERE id = $${idx}
-       RETURNING id, username, email, name, role, must_change_password, is_verified, subscription_end_date, updated_at`,
+       RETURNING id, username, email, role, must_change_password, is_verified, subscription_end_date, updated_at`,
             values
         );
         return result.rows[0] || null;
@@ -90,7 +89,7 @@ const User = {
             `UPDATE users
              SET password_hash = $1, must_change_password = FALSE, updated_at = NOW()
              WHERE id = $2
-             RETURNING id, username, email, name, role, must_change_password, updated_at`,
+             RETURNING id, username, email, role, must_change_password, updated_at`,
             [hash, id]
         );
         return result.rows[0] || null;

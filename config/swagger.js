@@ -34,9 +34,11 @@ const options = {
                 // ── Auth ───────────────────────────────────────────────────────────
                 DoctorRegisterRequest: {
                     type: 'object',
-                    required: ['name', 'email', 'password', 'licenseNumber'],
+                    required: ['firstName', 'paternalSurname', 'email', 'password', 'licenseNumber'],
                     properties: {
-                        name: { type: 'string', example: 'Dr. García López', description: 'Nombre completo del médico' },
+                        firstName: { type: 'string', example: 'Juan', description: 'Nombre(s)' },
+                        paternalSurname: { type: 'string', example: 'Pérez', description: 'Apellido Paterno' },
+                        maternalSurname: { type: 'string', example: 'García', description: 'Apellido Materno (Opcional)' },
                         email: { type: 'string', format: 'email', example: 'doctor@hospital.com' },
                         password: { type: 'string', minLength: 6, example: 'SecurePass123' },
                         licenseNumber: { type: 'string', example: '12345678', description: 'Cédula profesional' },
@@ -48,13 +50,15 @@ const options = {
                 // ── Users ──────────────────────────────────────────────────────────
                 RegisterRequest: {
                     type: 'object',
-                    required: ['email', 'name', 'password'],
+                    required: ['email', 'firstName', 'paternalSurname', 'password'],
                     properties: {
                         email: { type: 'string', format: 'email', example: 'medico@retiscan.com' },
-                        name: { type: 'string', example: 'Dr. García López' },
+                        firstName: { type: 'string', example: 'Juan' },
+                        paternalSurname: { type: 'string', example: 'Pérez' },
+                        maternalSurname: { type: 'string', example: 'García' },
                         password: { type: 'string', minLength: 6, example: 'SecurePass123' },
                     },
-                    description: 'El rol se asigna automáticamente: @retiscan.com → MEDICO, otros → PACIENTE',
+                    description: 'Registro rápido (el rol se asigna por el dominio del correo)',
                 },
                 LoginRequest: {
                     type: 'object',
@@ -70,7 +74,7 @@ const options = {
                         id: { type: 'string', format: 'uuid' },
                         username: { type: 'string', example: 'doctor.garcia' },
                         email: { type: 'string', format: 'email', nullable: true },
-                        name: { type: 'string', example: 'Dr. García López' },
+                        name: { type: 'string', example: 'Juan Pérez García', description: 'Nombre completo (construido desde el perfil)' },
                         role: { type: 'string', enum: ['MEDICO', 'PACIENTE'] },
                         is_verified: { type: 'boolean' },
                         subscription_end_date: { type: 'string', format: 'date-time', nullable: true },
