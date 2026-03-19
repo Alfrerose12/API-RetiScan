@@ -20,9 +20,9 @@ function signToken(user, profileName) {
 
 const authService = {
     /**
-     * Login unificado: acepta email (médicos) o username (pacientes).
+     * Paso 1: Valida la contraseña y retorna la data básica (Sin emitir JWT)
      */
-    async login(identifier, password) {
+    async validateCredentials(identifier, password) {
         if (!identifier || !password) {
             const err = new Error('Se requieren identificador y contraseña');
             err.statusCode = 400;
@@ -57,7 +57,17 @@ const authService = {
             throw err;
         }
 
-        // Recuperar nombre y email desde la tabla de perfil correspondiente
+        return this.getProfileData(user.id);
+    },
+
+    /**
+     * Obtiene los nombres y email del perfil asociado al usuario
+     */
+    async getProfileData(userId) {
+        const uRes = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+        if (uRes.rows.length === 0) throw new Error('Usuario no encontrado');
+        const user = uRes.rows[0];
+
         let profileName = null;
         let profileEmail = user.email;
 
@@ -82,10 +92,30 @@ const authService = {
             }
         }
 
+        return { user, profileName, profileEmail };
+    },
+
+    /**
+     * Paso Final: Genera el JWT y el Refresh Token
+     */
+    async generateTokensForUser(user, profileEmail, profileName) {
         const token = signToken({ ...user, email: profileEmail }, profileName);
+
+        // Generar Refresh Token
+        const crypto = require('crypto');
+        const refreshToken = crypto.randomBytes(40).toString('hex');
+        
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + (env.REFRESH_TOKEN_EXPIRES_DAYS || 7));
+
+        await pool.query(
+            'INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)',
+            [user.id, refreshToken, expiresAt]
+        );
 
         return {
             token,
+            refreshToken,
             user: {
                 id: user.id,
                 username: user.username,
@@ -97,6 +127,14 @@ const authService = {
                 subscription_end_date: user.subscription_end_date || null,
             },
         };
+    },
+
+    /**
+     * Refresh Automático
+     */
+    async generateTokenById(userId) {
+        const { user, profileName, profileEmail } = await this.getProfileData(userId);
+        return signToken({ ...user, email: profileEmail }, profileName);
     },
 };
 

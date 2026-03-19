@@ -3,6 +3,7 @@ const env = require('./config/env');
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const cookieParser = require('cookie-parser');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
 
@@ -13,10 +14,17 @@ const app = express();
 const PORT = env.PORT;
 
 // ── Middleware Global ──────────────────────────────────────────────────────
-app.use(cors());
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        return callback(null, origin);
+    },
+    credentials: true // Obligatorio para enviar/recibir cookies HttpOnly
+}));
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(express.static('public')); // Sirve /public/index.html en /
 
 // ── Swagger UI ─────────────────────────────────────────────────────────────

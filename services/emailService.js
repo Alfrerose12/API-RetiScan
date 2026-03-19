@@ -93,6 +93,25 @@ const emailService = {
         `;
         return this.send({ to, subject: `Código de recuperación: ${otp}`, html });
     },
+
+    /**
+     * Envía un código OTP para inicio de sesión en dos pasos (Login MFA).
+     */
+    async sendLoginOtp(to, otp, name) {
+        const html = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                <h2 style="color: #1a73e8;">Inicio de sesión seguro — RetiScan</h2>
+                <p>Hola <strong>${name}</strong>, hemos detectado un intento de inicio de sesión. Por favor, ingresa este código para verificar tu identidad:</p>
+                <div style="text-align: center; margin: 32px 0;">
+                    <span style="font-size: 48px; font-weight: bold; letter-spacing: 12px; color: #1a73e8;">${otp}</span>
+                </div>
+                <p style="color: #888; font-size: 13px;">Este código expira en <strong>15 minutos</strong>. Si tú no intentaste iniciar sesión, te recomendamos cambiar tu contraseña de inmediato.</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+                <p style="color: #aaa; font-size: 12px;">RetiScan – Detección de Retinopatía Diabética con IA</p>
+            </div>
+        `;
+        return this.send({ to, subject: `Verificación de inicio de sesión: ${otp}`, html });
+    },
 };
 
 module.exports = emailService;

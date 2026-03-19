@@ -144,3 +144,18 @@ CREATE INDEX IF NOT EXISTS idx_verifications_token     ON verifications(token);
 
 -- Índice GIN para consultas JSONB sobre ai_result
 CREATE INDEX IF NOT EXISTS idx_analyses_ai_result      ON analyses USING GIN (ai_result);
+
+-- ─────────────────────────────────────────────
+-- 10. REFRESH TOKENS (Sesiones)
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+  id           UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id      UUID         NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token        VARCHAR(255) NOT NULL UNIQUE,
+  expires_at   TIMESTAMPTZ  NOT NULL,
+  revoked      BOOLEAN      NOT NULL DEFAULT FALSE,
+  created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON refresh_tokens(token);

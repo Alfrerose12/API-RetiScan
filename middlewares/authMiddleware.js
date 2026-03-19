@@ -12,7 +12,7 @@ async function authMiddleware(req, res, next) {
     const authHeader = req.headers['authorization'];
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Authorization token missing or malformed' });
+        return res.status(401).json({ error: 'TOKEN_MISSING' });
     }
 
     const token = authHeader.split(' ')[1];
@@ -21,7 +21,7 @@ async function authMiddleware(req, res, next) {
         // Verificar Lista Negra
         const blCheck = await pool.query('SELECT 1 FROM blacklisted_tokens WHERE token = $1', [token]);
         if (blCheck.rows.length > 0) {
-            return res.status(401).json({ error: 'Sesión inválida o expirada de forma remota' });
+            return res.status(401).json({ error: 'TOKEN_INVALID' });
         }
 
         const decoded = jwt.verify(token, env.JWT_SECRET);
@@ -30,9 +30,9 @@ async function authMiddleware(req, res, next) {
         next();
     } catch (err) {
         if (err.name === 'TokenExpiredError') {
-            return res.status(401).json({ error: 'Token expired — please log in again' });
+            return res.status(401).json({ error: 'TOKEN_EXPIRED' });
         }
-        return res.status(401).json({ error: 'Invalid token' });
+        return res.status(401).json({ error: 'TOKEN_INVALID' });
     }
 }
 

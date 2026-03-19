@@ -65,6 +65,30 @@ router.post('/login', authLimiter, authController.login);
 
 /**
  * @swagger
+ * /auth/verify-login-otp:
+ *   post:
+ *     summary: Verificar el OTP del login (Paso 2 de MFA)
+ *     tags: [Auth]
+ */
+router.post('/verify-login-otp', authLimiter, authController.verifyLoginOtp);
+
+/**
+ * @swagger
+ * /auth/refresh:
+ *   post:
+ *     summary: Renovar Access Token usando Refresh Token en Cookie
+ *     tags: [Auth]
+ *     security: []
+ *     responses:
+ *       200:
+ *         description: Refresh token válido, retorna nuevo Access Token
+ *       401:
+ *         description: TOKEN_MISSING o TOKEN_INVALID
+ */
+router.post('/refresh', authLimiter, authController.refresh);
+
+/**
+ * @swagger
  * /auth/logout:
  *   post:
  *     summary: Cerrar sesión (invalida el token JWT activo)

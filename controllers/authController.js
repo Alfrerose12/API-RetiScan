@@ -17,8 +17,104 @@ const authController = {
             if (!identifier || !password) {
                 return res.status(400).json({ error: 'Se requieren "identifier" y "password"' });
             }
-            const result = await authService.login(identifier, password);
-            return res.status(200).json({ message: 'Inicio de sesión exitoso', ...result });
+            
+            // 1. Validar Credenciales
+            const { user, profileName, profileEmail } = await authService.validateCredentials(identifier, password);
+            const targetEmail = profileEmail || user.email;
+            
+            if (!targetEmail) {
+                // Modo bypass MFA para pacientes recién creados sin correo configurado
+                const { refreshToken, token, user: userData } = await authService.generateTokensForUser(user, profileEmail, profileName);
+                
+                const maxAgeDays = parseInt(process.env.REFRESH_TOKEN_EXPIRES_DAYS) || 7;
+                res.cookie('refreshToken', refreshToken, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'lax',
+                    maxAge: maxAgeDays * 24 * 60 * 60 * 1000
+                });
+
+                return res.status(200).json({ message: 'Inicio de sesión exitoso', token, user: userData });
+            }
+
+            // 2. Generar y Enviar OTP (solo si tiene correo)
+            const otpRecord = await Verification.createOtp(user.id, 'OTP_EMAIL');
+            await emailService.sendLoginOtp(targetEmail, otpRecord.token, profileName);
+
+            // 3. Responder que se requiere 2FA
+            return res.status(206).json({ 
+                message: 'Código de verificación enviado al correo',
+                requires2FA: true,
+                userId: user.id
+            });
+        } catch (err) {
+            next(err);
+        }
+    },
+
+    /**
+     * POST /api/auth/verify-login-otp
+     * Valida el OTP y entrega los verdaderos JWT Access/Refresh tokens.
+     */
+    async verifyLoginOtp(req, res, next) {
+        try {
+            const { userId, otp } = req.body;
+            if (!userId || !otp) {
+                return res.status(400).json({ error: 'Se requiere userId y otp' });
+            }
+
+            // Validar
+            const validOtp = await Verification.findValidOtp(userId, otp, 'OTP_EMAIL');
+            if (!validOtp) {
+                return res.status(401).json({ error: 'El código OTP es inválido o ha expirado' });
+            }
+
+            // Quemar OTP
+            await Verification.markUsed(validOtp.id);
+
+            // Emitir tokens finales
+            const { user, profileName, profileEmail } = await authService.getProfileData(userId);
+            const { refreshToken, token, user: userData } = await authService.generateTokensForUser(user, profileEmail, profileName);
+            
+            // Configurar Cookie HttpOnly
+            const maxAgeDays = parseInt(process.env.REFRESH_TOKEN_EXPIRES_DAYS) || 7;
+            res.cookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: maxAgeDays * 24 * 60 * 60 * 1000
+            });
+
+            return res.status(200).json({ message: 'Inicio de sesión exitoso', token, user: userData });
+        } catch (err) {
+            next(err);
+        }
+    },
+
+    /**
+     * POST /api/auth/refresh
+     * Renueva el Access Token usando el Refresh Token de la cookie
+     */
+    async refresh(req, res, next) {
+        try {
+            const refreshToken = req.cookies.refreshToken;
+            if (!refreshToken) {
+                return res.status(401).json({ error: 'TOKEN_MISSING' });
+            }
+
+            const result = await pool.query(
+                'SELECT * FROM refresh_tokens WHERE token = $1 AND revoked = FALSE AND expires_at > NOW()',
+                [refreshToken]
+            );
+
+            if (result.rows.length === 0) {
+                return res.status(401).json({ error: 'TOKEN_INVALID' });
+            }
+
+            const userId = result.rows[0].user_id;
+            const newToken = await authService.generateTokenById(userId);
+
+            return res.status(200).json({ token: newToken });
         } catch (err) {
             next(err);
         }
@@ -38,6 +134,13 @@ const authController = {
                     [token, expDate]
                 );
             }
+
+            const refreshToken = req.cookies.refreshToken;
+            if (refreshToken) {
+                await pool.query('UPDATE refresh_tokens SET revoked = TRUE WHERE token = $1', [refreshToken]);
+            }
+            res.clearCookie('refreshToken');
+
             return res.status(200).json({ message: 'Sesión cerrada exitosamente' });
         } catch (err) {
             next(err);

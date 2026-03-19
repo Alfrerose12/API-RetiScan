@@ -60,7 +60,7 @@ const verificationService = {
     async sendPatientOtp(userId, email, type = 'OTP_EMAIL') {
         const user = await User.findById(userId);
         if (!user) throw Object.assign(new Error('Usuario no encontrado'), { statusCode: 404 });
-        if (user.is_verified) throw Object.assign(new Error('La cuenta ya está verificada'), { statusCode: 409 });
+        // Removido: (user.is_verified) throw error. Permitimos solicitar OTP a usuarios verificados para MFA y cambios de contraseña.
 
         const verification = await Verification.createOtp(userId, type);
 
