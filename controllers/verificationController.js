@@ -20,8 +20,8 @@ const verificationController = {
 
     /**
      * POST /api/auth/send-otp
-     * El paciente solicita que le manden un código OTP a su correo o teléfono.
-     * Body: { email, type: 'OTP_EMAIL' | 'OTP_SMS' }
+     * El paciente solicita que le manden un código OTP a su correo.
+     * Body: { email, type: 'OTP_EMAIL' }
      * Requiere JWT (el paciente ya inició sesión con username + tempPassword).
      */
     async sendOtp(req, res, next) {
@@ -43,8 +43,8 @@ const verificationController = {
 
     /**
      * POST /api/auth/verify-otp
-     * El paciente ingresa el código que recibió.
-     * Body: { otp, type: 'OTP_EMAIL' | 'OTP_SMS' }
+     * El paciente ingresa el código que recibió por correo.
+     * Body: { otp, type: 'OTP_EMAIL' }
      * Requiere JWT.
      */
     async verifyOtp(req, res, next) {

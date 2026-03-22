@@ -1,17 +1,36 @@
 const rateLimit = require('express-rate-limit');
 
 /**
- * Limitador de seguridad para evitar ataques de fuerza bruta en los endpoints de autenticación.
- * Bloquea la IP si intenta iniciar sesión o verificar OTPs más de 10 veces en 15 minutos.
+ * Limitador para intentos de inicio de sesión.
  */
-const authLimiter = rateLimit({
+const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 10, // 10 solicitudes por ventana por IP
-    message: {
-        error: 'Demasiados intentos de acceso desde esta IP. Por seguridad, intenta de nuevo en 15 minutos.',
-    },
-    standardHeaders: true, // Retorna detalles de límite en los headers `RateLimit-*`
-    legacyHeaders: false, // Desactiva los headers antiguos `X-RateLimit-*`
+    max: 10,
+    message: { error: 'Demasiados intentos de acceso desde esta IP. Por seguridad, intenta de nuevo en 15 minutos.' },
+    standardHeaders: true,
+    legacyHeaders: false,
 });
 
-module.exports = { authLimiter };
+/**
+ * Limitador para envío y verificación de OTP.
+ */
+const otpLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 8, // Permite 8 intentos de OTP
+    message: { error: 'Demasiados intentos con códigos de verificación. Por favor, intenta más tarde.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+/**
+ * Limitador para recuperación y restablecimiento de contraseña.
+ */
+const resetPassLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 5, // Límite estricto para recuperación
+    message: { error: 'Demasiados intentos de recuperación de cuenta. Por seguridad, intenta más tarde.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+module.exports = { loginLimiter, otpLimiter, resetPassLimiter };

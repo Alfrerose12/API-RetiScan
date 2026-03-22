@@ -2,7 +2,7 @@ const { Router } = require('express');
 const authController = require('../controllers/authController');
 const verificationController = require('../controllers/verificationController');
 const authMiddleware = require('../middlewares/authMiddleware');
-const { authLimiter } = require('../middlewares/rateLimitMiddleware');
+const { loginLimiter, otpLimiter, resetPassLimiter } = require('../middlewares/rateLimitMiddleware');
 
 const router = Router();
 
@@ -38,7 +38,7 @@ const router = Router();
  *       409:
  *         description: El correo electrónico ya está registrado
  */
-router.post('/register', authLimiter, authController.register);
+router.post('/register', loginLimiter, authController.register);
 
 /**
  * @swagger
@@ -61,7 +61,7 @@ router.post('/register', authLimiter, authController.register);
  *       403:
  *         description: Cuenta no verificada — revisa tu correo
  */
-router.post('/login', authLimiter, authController.login);
+router.post('/login', loginLimiter, authController.login);
 
 /**
  * @swagger
@@ -70,7 +70,7 @@ router.post('/login', authLimiter, authController.login);
  *     summary: Verificar el OTP del login (Paso 2 de MFA)
  *     tags: [Auth]
  */
-router.post('/verify-login-otp', authLimiter, authController.verifyLoginOtp);
+router.post('/verify-login-otp', otpLimiter, authController.verifyLoginOtp);
 
 /**
  * @swagger
@@ -85,7 +85,7 @@ router.post('/verify-login-otp', authLimiter, authController.verifyLoginOtp);
  *       401:
  *         description: TOKEN_MISSING o TOKEN_INVALID
  */
-router.post('/refresh', authLimiter, authController.refresh);
+router.post('/refresh', loginLimiter, authController.refresh);
 
 /**
  * @swagger
@@ -155,7 +155,7 @@ router.get('/verify-email', verificationController.verifyEmail);
  *       409:
  *         description: Cuenta ya verificada
  */
-router.post('/send-otp', authLimiter, authMiddleware, verificationController.sendOtp);
+router.post('/send-otp', otpLimiter, authMiddleware, verificationController.sendOtp);
 
 /**
  * @swagger
@@ -184,7 +184,7 @@ router.post('/send-otp', authLimiter, authMiddleware, verificationController.sen
  *       400:
  *         description: Código inválido o expirado
  */
-router.post('/verify-otp', authLimiter, authMiddleware, verificationController.verifyOtp);
+router.post('/verify-otp', otpLimiter, authMiddleware, verificationController.verifyOtp);
 /**
  * @swagger
  * /auth/forgot-password:
@@ -204,7 +204,7 @@ router.post('/verify-otp', authLimiter, authMiddleware, verificationController.v
  *       200:
  *         description: Se envió el correo (si existe la cuenta)
  */
-router.post('/forgot-password', authLimiter, authController.forgotPassword);
+router.post('/forgot-password', resetPassLimiter, authController.forgotPassword);
 
 /**
  * @swagger
@@ -229,6 +229,6 @@ router.post('/forgot-password', authLimiter, authController.forgotPassword);
  *       400:
  *         description: OTP inválido o expirado
  */
-router.post('/reset-password', authLimiter, authController.resetPassword);
+router.post('/reset-password', resetPassLimiter, authController.resetPassword);
 
 module.exports = router;

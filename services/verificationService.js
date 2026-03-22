@@ -55,7 +55,7 @@ const verificationService = {
      * El paciente debe haber proporcionado su email en el perfil.
      * @param {string} userId
      * @param {string} email   - Email ingresado por el paciente en su perfil
-     * @param {'OTP_EMAIL'|'OTP_SMS'} type
+     * @param {'OTP_EMAIL'} type
      */
     async sendPatientOtp(userId, email, type = 'OTP_EMAIL') {
         const user = await User.findById(userId);
@@ -86,7 +86,7 @@ const verificationService = {
      * PACIENTE: verifica el OTP ingresado y activa la cuenta.
      * @param {string} userId
      * @param {string} otp
-     * @param {'OTP_EMAIL'|'OTP_SMS'} type
+     * @param {'OTP_EMAIL'} type
      */
     async verifyPatientOtp(userId, otp, type = 'OTP_EMAIL') {
         if (!otp) throw Object.assign(new Error('OTP requerido'), { statusCode: 400 });

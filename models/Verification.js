@@ -35,7 +35,7 @@ const Verification = {
      * Crea un OTP de 6 dígitos para verificación por correo o SMS simulado.
      * Expira en 15 minutos.
      * @param {string} userId
-     * @param {'OTP_EMAIL'|'OTP_SMS'} type
+     * @param {'OTP_EMAIL'} type
      * @returns {{ id, token, expires_at }}
      */
     async createOtp(userId, type = 'OTP_EMAIL') {
@@ -77,7 +77,7 @@ const Verification = {
      * Busca un OTP válido (sin usar y sin expirar) para un usuario.
      * @param {string} userId
      * @param {string} otp
-     * @param {'OTP_EMAIL'|'OTP_SMS'} type
+     * @param {'OTP_EMAIL'} type
      */
     async findValidOtp(userId, otp, type = 'OTP_EMAIL') {
         const result = await pool.query(
