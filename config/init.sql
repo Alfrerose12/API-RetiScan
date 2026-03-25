@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS doctors (
   license_number   VARCHAR(30)  NOT NULL,          -- Cédula profesional
   specialty        VARCHAR(100),
   institution      VARCHAR(150),
-  phone            VARCHAR(15),
+  phone            VARCHAR(20),
   verified_at      TIMESTAMPTZ,                    -- Cuando se valide la cédula (futuro)
   created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
   updated_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW()
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS patients (
   birth_date       DATE,                           -- Se llena en el primer login del paciente
   gender           VARCHAR(10)  CHECK (gender IN ('MASCULINO', 'FEMENINO', 'OTRO')),
   email            VARCHAR(255),                   -- Se confirma en primer login
-  phone            VARCHAR(15),
+  phone            VARCHAR(20),
   last_visit       TIMESTAMPTZ,
   total_analyses   INTEGER      NOT NULL DEFAULT 0,
   is_active        BOOLEAN      NOT NULL DEFAULT TRUE,

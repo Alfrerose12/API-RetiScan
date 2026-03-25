@@ -46,6 +46,7 @@ const env = {
 
     // ── App ──────────────────────────────────────────────────
     APP_URL: process.env.APP_URL || 'http://localhost:3000',
+    LANDING_URL: process.env.LANDING_URL || 'http://localhost:5174',
 };
 
 module.exports = env;

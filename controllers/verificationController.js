@@ -10,8 +10,6 @@ const verificationController = {
         try {
             const { token } = req.query;
             const result = await verificationService.verifyEmailLink(token);
-
-            // En producción redirigir al PWA: return res.redirect(`${env.APP_URL}/pwa/verified`);
             return res.status(200).json(result);
         } catch (err) {
             next(err);

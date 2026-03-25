@@ -4,6 +4,8 @@ const verificationController = require('../controllers/verificationController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const { loginLimiter, otpLimiter, resetPassLimiter } = require('../middlewares/rateLimitMiddleware');
 
+const { validateMedicalRegistration } = require('../middlewares/validationMiddleware');
+
 const router = Router();
 
 /**
@@ -38,7 +40,7 @@ const router = Router();
  *       409:
  *         description: El correo electrónico ya está registrado
  */
-router.post('/register', loginLimiter, authController.register);
+router.post('/register', loginLimiter, validateMedicalRegistration, authController.register);
 
 /**
  * @swagger

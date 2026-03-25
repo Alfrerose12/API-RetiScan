@@ -35,7 +35,7 @@ const emailService = {
      * @param {string} name     - Nombre del médico
      */
     async sendVerificationLink(to, token, name) {
-        const link = `${env.APP_URL}/api/auth/verify-email?token=${token}`;
+        const link = `${env.LANDING_URL}/?verify=${token}`;
         const html = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 8px;">
                 <h2 style="color: #1a73e8;">¡Bienvenido a RetiScan, ${name}!</h2>

@@ -47,7 +47,7 @@ const verificationService = {
         // Marcar token como usado
         await Verification.markUsed(record.id);
 
-        return { message: 'Cuenta verificada exitosamente. Tu suscripción de prueba de 30 días ha comenzado.' };
+        return { message: 'Tu cuenta ha sido activada exitosamente. Ya puedes acceder a la infraestructura completa de RetiScan.' };
     },
 
     /**
