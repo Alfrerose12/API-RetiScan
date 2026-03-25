@@ -159,3 +159,37 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON refresh_tokens(token);
+
+-- ─────────────────────────────────────────────
+-- 11. RECOMMENDATIONS (Recomendaciones y medicamentos)
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS recommendations (
+  id               UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  patient_id       UUID         NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+  type             VARCHAR(20)  NOT NULL CHECK (type IN ('RECOMMENDATION', 'MEDICATION')),
+  title            VARCHAR(255) NOT NULL,
+  description      TEXT,
+  dosage           VARCHAR(100),
+  frequency_hours  INTEGER,
+  next_dose_at     TIMESTAMPTZ,
+  is_active        BOOLEAN      NOT NULL DEFAULT TRUE,
+  created_by       UUID         NOT NULL REFERENCES users(id),
+  created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_recommendations_patient ON recommendations(patient_id);
+CREATE INDEX IF NOT EXISTS idx_recommendations_active  ON recommendations(patient_id, is_active);
+
+-- ─────────────────────────────────────────────
+-- 12. MEDICATION LOGS (Historial de tomas)
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS medication_logs (
+  id                UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  recommendation_id UUID         NOT NULL REFERENCES recommendations(id) ON DELETE CASCADE,
+  taken_at          TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  next_dose_at      TIMESTAMPTZ,
+  created_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_medication_logs_rec ON medication_logs(recommendation_id);

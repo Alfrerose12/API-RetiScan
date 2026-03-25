@@ -198,6 +198,44 @@ const options = {
                     },
                 },
                 // ── Generic ────────────────────────────────────────────────────────
+                // ── Recommendations ────────────────────────────────────────────────
+                RecommendationRequest: {
+                    type: 'object',
+                    required: ['patientId', 'type', 'title'],
+                    properties: {
+                        patientId: { type: 'string', format: 'uuid' },
+                        type: { type: 'string', enum: ['RECOMMENDATION', 'MEDICATION'], description: 'Tipo: recomendación general o medicamento' },
+                        title: { type: 'string', example: 'Gotas Timolol 0.5%' },
+                        description: { type: 'string', example: 'Aplicar 1 gota en cada ojo' },
+                        dosage: { type: 'string', example: '1 gota cada 12 horas' },
+                        frequencyHours: { type: 'integer', example: 12, description: 'Frecuencia de toma en horas (solo para medicamentos)' },
+                    },
+                },
+                Recommendation: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string', format: 'uuid' },
+                        patient_id: { type: 'string', format: 'uuid' },
+                        type: { type: 'string', enum: ['RECOMMENDATION', 'MEDICATION'] },
+                        title: { type: 'string' },
+                        description: { type: 'string', nullable: true },
+                        dosage: { type: 'string', nullable: true },
+                        frequency_hours: { type: 'integer', nullable: true },
+                        next_dose_at: { type: 'string', format: 'date-time', nullable: true },
+                        is_active: { type: 'boolean' },
+                        created_by: { type: 'string', format: 'uuid' },
+                        created_at: { type: 'string', format: 'date-time' },
+                    },
+                },
+                MedicationLogEntry: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string', format: 'uuid' },
+                        recommendation_id: { type: 'string', format: 'uuid' },
+                        taken_at: { type: 'string', format: 'date-time' },
+                        next_dose_at: { type: 'string', format: 'date-time', nullable: true },
+                    },
+                },
 
                 Error: {
                     type: 'object',
